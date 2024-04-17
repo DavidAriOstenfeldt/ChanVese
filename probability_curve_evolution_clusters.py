@@ -32,6 +32,7 @@ def get_pin_pout(image, snake, M, bins):
     value_range_matrix = np.tile(value_range, (num_pixels, 1))
     
     # Divide image into patches
+    global patches
     patches = patchify(image, (M,M), M)
     patch_size = patches.shape
     patches = patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
@@ -43,6 +44,9 @@ def get_pin_pout(image, snake, M, bins):
     assignments = kmeans.labels_
     
     # Reshape to image
+    global dictionary
+    global patch_assignment
+    dictionary = kmeans.cluster_centers_
     patch_assignment = assignments.reshape(patch_size[0:2])
     plt.imshow(patch_assignment)
     plt.show()
@@ -51,6 +55,10 @@ def get_pin_pout(image, snake, M, bins):
     binFrequency = np.histogram(assignments,bins=bins)
     plt.hist(binFrequency[0],bins=bins)
     plt.show()
+    
+    # Calculate dictionary probabilities
+    
+
     
     # Calculate B matrix
     
