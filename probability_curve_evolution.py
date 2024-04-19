@@ -35,7 +35,8 @@ def get_pin_pout(image, snake):
     
     # Calculate B matrix
     B = (value_range_matrix == image_matrix).astype(bool)
-    
+    global f_in
+    global f_out
     f_in = (B.T.astype(np.float64) @ in_mask) / A_in
     p_in = f_in / f_in.sum()
     P_in = p_in[image]
@@ -76,5 +77,13 @@ if __name__ == '__main__':
     
     plt.title('P_in - P_out')
     plt.imshow(P_in - P_out, cmap='RdBu')
-
+    plt.show()
+    
+    # Ensure that probabilities sum to one (Astrid modification)
+    P_in_norm = P_in/(P_in+P_out)
+    P_out_norm = P_out/(P_in+P_out)
+    
+    plt.title('P_in_norm - P_out_norm')
+    plt.imshow(P_in_norm - P_out_norm, cmap='RdBu')
+    plt.show()
 #%% 

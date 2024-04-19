@@ -92,6 +92,39 @@ def distribute_points(snake):
     return new
 
 
+# Following section 2.4 from the paper by Dahl and Dahl
+def get_pin_pout(image, snake):
+
+    in_mask = polygon2mask(image.shape, snake).ravel().astype(bool)
+    out_mask = 1 - in_mask
+    
+    # The A matrices are the sum of the pixels in the inner and outer regions
+    A_in = np.sum(in_mask)
+    A_out = np.sum(out_mask)
+    
+    # Get the number of pixels in the image
+    num_pixels = image.shape[0] * image.shape[1]
+    
+    # Get the value range (intensities)
+    value_range = np.arange(256)
+    value_range_matrix = np.tile(value_range, (num_pixels, 1))
+    
+    # order pixels by column
+    image_flat = image.ravel()
+    image_matrix = b = np.multiply(image_flat, np.ones((num_pixels, 256), dtype=np.uint8).T).T
+    
+    # Calculate B matrix
+    B = (value_range_matrix == image_matrix).astype(bool)
+    f_in = (B.T.astype(np.float64) @ in_mask) / A_in
+    p_in = f_in / f_in.sum()
+    P_in = p_in[image]
+    
+    f_out = (B.T.astype(np.float64) @ out_mask) / A_out
+    p_out = f_out / f_out.sum()
+    P_out = p_out[image]
+        
+    return P_in, P_out
+
 
 #%% Function for evolving the snake
 
@@ -105,9 +138,13 @@ def evolve_snake(snake, image, B, step_size):
     # Determine probabilities for Curve Evolution
     P_in, P_out = get_pin_pout(image, snake)
     
+    # Ensure that probabilities sum to one (Astrid modification)
+    P_in_norm = P_in/(P_in+P_out)
+    P_out_norm = P_out/(P_in+P_out)
+    
     # Determine forces
     N = get_normals(snake)
-    deltaP = (P_in[snake.astype(int)[:,0],snake.astype(int)[:,1]]-P_out[snake.astype(int)[:,0],snake.astype(int)[:,1]]) 
+    deltaP = (P_in_norm[snake.astype(int)[:,0],snake.astype(int)[:,1]]-P_out_norm[snake.astype(int)[:,0],snake.astype(int)[:,1]]) 
     Fext = np.multiply(np.array([deltaP,deltaP]).T,N)
     displacement = step_size * Fext * get_normals(snake)
 
@@ -124,7 +161,7 @@ def evolve_snake(snake, image, B, step_size):
 
 #%%
 # Image to be displayed
-test_image = 'simple_test.png'
+test_image = 'test_easy_labels.png'
 # Load an image
 image = io.imread('Data/'+test_image, as_gray=True).astype(np.uint8)
 
@@ -133,9 +170,9 @@ image = io.imread('Data/'+test_image, as_gray=True).astype(np.uint8)
 N = 250
 center = (230,230)
 radius = 180
-alpha = 0.02
-beta = 0.8
-step_size = 10000
+alpha = 0.8
+beta = 0.2
+step_size = 10
 
 # Create snakes
 snake = create_circle_snake(center[0], center[1], radius, N)
@@ -146,12 +183,13 @@ plt.show()
 
 B = regularization_matrix(N, alpha, beta)
 
-newSnake = evolve_snake(snake, image, B, step_size)
+for i in range(1):
+    snake = evolve_snake(snake, image, B, step_size)
 
-plt.title('New snake')
-plt.imshow(image, cmap='gray')
-plt.plot(newSnake[:,0], newSnake[:,1], c='red')
-plt.show()
+    plt.title('New snake')
+    plt.imshow(image, cmap='gray')
+    plt.plot(snake[:,0], snake[:,1], c='red')
+    plt.show()
 
 
 # Divide image into inner and outer region
