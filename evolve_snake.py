@@ -138,7 +138,7 @@ def evolve_snake(snake, image, B, step_size):
     outer = image[False == s_mask]
     
     # Determine probabilities for Curve Evolution
-    P_in, P_out = get_pin_pout_cluster(image, snake,10,150)
+    P_in, P_out = get_pin_pout_cluster(image, snake,10,50)
     #print(P_in.shape)
     #P_in, P_out = get_pin_pout(image, snake)
     #print(P_in.shape)
@@ -151,7 +151,7 @@ def evolve_snake(snake, image, B, step_size):
     N = get_normals(snake)
     deltaP = (P_in_norm[snake.astype(int)[:,0],snake.astype(int)[:,1]]-P_out_norm[snake.astype(int)[:,0],snake.astype(int)[:,1]]) 
     Fext = np.multiply(np.array([deltaP,deltaP]).T,N)
-    displacement = step_size * Fext * get_normals(snake)
+    displacement = step_size * Fext #* get_normals(snake)
 
     snake = snake + displacement  # external part
     snake = B @ snake  # internal part, ordering influenced by 2-by-N representation of snake
@@ -159,25 +159,25 @@ def evolve_snake(snake, image, B, step_size):
     snake = remove_intersections(snake)
     snake = distribute_points(snake)
     snake = keep_snake_inside(snake, image.shape)
-    return snake
+    return snake, displacement, Fext*10, get_normals(snake)*10
 
 
     
 
 #%%
 # Image to be displayed
-test_image = 'test_easy_labels.png'
+test_image = 'test_A1.png'
 # Load an image
 image = io.imread('Data/'+test_image, as_gray=True).astype(np.uint8)
 
 
 # Settings
 N = 300
-center = (300,300)
-radius = 180
-alpha = 0.002
-beta = 0.002
-step_size = 0.0001
+center = (100,100)
+radius = 150
+alpha = 4
+beta = 0.2
+step_size = 30
 
 # Create snakes
 snake = create_circle_snake(center[0], center[1], radius, N)
@@ -188,14 +188,17 @@ plt.show()
 
 B = regularization_matrix(N, alpha, beta)
 
-for i in range(30):
-    snake = evolve_snake(snake, image, B, step_size)
+closed = np.hstack([np.arange(N), 0])  # Indices of the closed curve
 
-    if np.mod(i+1,10)==0:
-        plt.title('New snake')
-        plt.imshow(image, cmap='gray')
-        plt.plot(snake[:,1], snake[:,0], c='red')
-        plt.show()
+for i in range(100):
+    snake, displacement, Fext, normals = evolve_snake(snake, image, B, step_size)
+
+    plt.title('New snake')
+    plt.imshow(image, cmap='gray')
+    plt.plot(snake[:,1], snake[:,0], c='red')
+    plt.show()
+    
+
 
 
 # Divide image into inner and outer region
