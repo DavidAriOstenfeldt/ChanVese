@@ -5,8 +5,10 @@ from skimage.draw import polygon2mask
 import matplotlib.pyplot as plt
 import sklearn.cluster
 from patchify import patchify, unpatchify
+import scipy
 
 from probability_curve_evolution import *
+from probability_curve_evolution_clusters import *
 
 #%% Helper functions
 
@@ -136,7 +138,10 @@ def evolve_snake(snake, image, B, step_size):
     outer = image[False == s_mask]
     
     # Determine probabilities for Curve Evolution
-    P_in, P_out = get_pin_pout(image, snake)
+    P_in, P_out = get_pin_pout_cluster(image, snake,10,150)
+    #print(P_in.shape)
+    #P_in, P_out = get_pin_pout(image, snake)
+    #print(P_in.shape)
     
     # Ensure that probabilities sum to one (Astrid modification)
     P_in_norm = P_in/(P_in+P_out)
@@ -167,33 +172,34 @@ image = io.imread('Data/'+test_image, as_gray=True).astype(np.uint8)
 
 
 # Settings
-N = 250
-center = (230,230)
+N = 300
+center = (300,300)
 radius = 180
-alpha = 0.8
-beta = 0.2
-step_size = 10
+alpha = 0.002
+beta = 0.002
+step_size = 0.0001
 
 # Create snakes
 snake = create_circle_snake(center[0], center[1], radius, N)
 plt.title(test_image)
 plt.imshow(image, cmap='gray')
-plt.plot(snake[:,0], snake[:,1], c='red')
+plt.plot(snake[:,1], snake[:,0], c='red')
 plt.show()
 
 B = regularization_matrix(N, alpha, beta)
 
-for i in range(1):
+for i in range(30):
     snake = evolve_snake(snake, image, B, step_size)
 
-    plt.title('New snake')
-    plt.imshow(image, cmap='gray')
-    plt.plot(snake[:,0], snake[:,1], c='red')
-    plt.show()
+    if np.mod(i+1,10)==0:
+        plt.title('New snake')
+        plt.imshow(image, cmap='gray')
+        plt.plot(snake[:,1], snake[:,0], c='red')
+        plt.show()
 
 
 # Divide image into inner and outer region
-s_mask = polygon2mask(image.shape, newSnake)
+s_mask = polygon2mask(image.shape, snake)
 inner = image[s_mask]
 outer = image[False == s_mask]
     
@@ -201,3 +207,4 @@ plt.title('Inner and outer regions')
 plt.hist(inner, density=True, bins=255, ls='dashed', lw=3, fc=(1, 0, 0, 0.5))
 plt.hist(outer, density=True, bins=255, ls='dashed', lw=3, fc=(0, 0, 1, 0.5))
 plt.show()
+# %%

@@ -15,7 +15,7 @@ def create_circle_snake(cx, cy, r, l):
     return np.c_[x, y]
 
 # Following section 2.4 from the paper by Dahl and Dahl
-def get_pin_pout(image, snake, M, bins):
+def get_pin_pout_cluster(image, snake, M, bins):
 
     in_mask = polygon2mask(image.shape, snake).ravel().astype(bool)
     out_mask = 1 - in_mask
@@ -48,17 +48,20 @@ def get_pin_pout(image, snake, M, bins):
     global patch_assignment
     dictionary = kmeans.cluster_centers_
     patch_assignment = assignments.reshape(patch_size[0:2])
-    plt.imshow(patch_assignment)
-    plt.show()
+    # plt.imshow(patch_assignment)
+    # plt.show()
     
     # Calculate frequencies of bins
     binFrequency = np.histogram(assignments,bins=bins)
-    plt.hist(binFrequency[0],bins=bins)
-    plt.show()
+    # plt.hist(binFrequency[0],bins=bins)
+    # plt.show()
     
     # Calculate dictionary probabilities
     
 
+    # order pixels by column
+    image_flat = image.ravel()
+    image_matrix = b = np.multiply(image_flat, np.ones((num_pixels, 256), dtype=np.uint8).T).T
     
     # Calculate B matrix
     
@@ -86,7 +89,7 @@ if __name__ == '__main__':
     snake = create_circle_snake(230, 230, 180, 150)
     plt.title(test_image)
     plt.imshow(image, cmap='gray')
-    plt.plot(snake[:,0], snake[:,1], c='red')
+    plt.plot(snake[:,1], snake[:,0], c='red')
     plt.show()
 
     # Divide image into inner and outer region
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     plt.show()
 
     # Get pin and pout
-    P_in, P_out = get_pin_pout(image, snake, 10, 200)
+    P_in, P_out = get_pin_pout_cluster(image, snake, 10, 200)
     
     plt.title('P_in - P_out')
     plt.imshow(P_in - P_out, cmap='RdBu')
