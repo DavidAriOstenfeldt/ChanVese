@@ -9,6 +9,7 @@ import scipy
 
 from probability_curve_evolution import *
 from probability_curve_evolution_clusters import *
+from probability_curve_evolution_clusters_features import *
 
 #%% Helper functions
 
@@ -138,7 +139,7 @@ def evolve_snake(snake, image, B, step_size, M, bins):
     outer = image[False == s_mask]
     
     # Determine probabilities for Curve Evolution
-    P_in, P_out = get_pin_pout_cluster(image, snake,M,bins)
+    P_in, P_out = get_pin_pout_cluster_features(image, snake,M,bins)
     
     # Ensure that probabilities sum to one (Astrid modification)
     P_in_norm = P_in/(P_in+P_out)
@@ -156,7 +157,7 @@ def evolve_snake(snake, image, B, step_size, M, bins):
     snake = remove_intersections(snake)
     snake = distribute_points(snake)
     snake = keep_snake_inside(snake, image.shape)
-    return snake, displacement, Fext*10, get_normals(snake)*10
+    return snake
 
 
 #%%
@@ -167,14 +168,14 @@ image = io.imread('Data/'+test_image).mean(axis=2).astype(np.uint8)
 
 
 # Settings
-N = 320
+N = 90
 center = (180,250)
 radius = 90
 alpha = 0.6
 beta = 0.6
-step_size = 2.2
-n_evolutions = 30
-M = 12
+step_size = 6
+n_evolutions = 50
+M = 25
 bins = 50
 
 # Create snakes
@@ -189,12 +190,12 @@ B = regularization_matrix(N, alpha, beta)
 closed = np.hstack([np.arange(N), 0])  # Indices of the closed curve
 
 for i in range(n_evolutions):
-    snake, displacement, Fext, normals = evolve_snake(snake, image, B, step_size,M,bins)
-
-plt.title('New snake')
-plt.imshow(image, cmap='gray')
-plt.plot(snake[:,1], snake[:,0], c='red')
-plt.show()
+    snake = evolve_snake(snake, image, B, step_size,M,bins)
+    if np.mod(i+1,10)==0:
+        plt.title('New snake')
+        plt.imshow(image, cmap='gray')
+        plt.plot(snake[:,1], snake[:,0], c='red')
+        plt.show()
     
 # %%
 # Divide image into inner and outer region

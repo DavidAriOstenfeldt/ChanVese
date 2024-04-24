@@ -33,7 +33,7 @@ def get_pin_pout_cluster_features(image, snake, M, bins):
     value_range_matrix = np.tile(value_range, (num_pixels, 1))
     
     # Get features
-    sigma = 1;
+    sigma = 1
     global gf
     gf = get_gauss_feat_im(image, sigma)
     
@@ -41,6 +41,13 @@ def get_pin_pout_cluster_features(image, snake, M, bins):
     patches = patchify(image, (M,M), M)
     patch_size = patches.shape
     patches = patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
+    
+    for layer in range(1,15):
+        gf_patches = patchify(gf[:,:,layer], (M,M), M)
+        gf_patches = gf_patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
+        
+        patches=np.concatenate((patches,gf_patches),axis=1)
+        
     
     # Cluster patches
     kmeans = sklearn.cluster.MiniBatchKMeans(n_clusters=bins, 
@@ -61,10 +68,6 @@ def get_pin_pout_cluster_features(image, snake, M, bins):
     image_assigment=image_assigment.astype(np.uint8)
 
     # plt.imshow(image_assigment)
-    # plt.show()
-    # Calculate frequencies of bins
-    #binFrequency = np.histogram(assignments,bins=bins)
-    # plt.hist(binFrequency[0],bins=bins)
     # plt.show()
     
     # Calculate dictionary probabilities
@@ -205,7 +208,7 @@ if __name__ == '__main__':
     plt.show()
 
     # Get pin and pout
-    P_in, P_out = get_pin_pout_cluster(image, snake, 10, 200)
+    P_in, P_out = get_pin_pout_cluster_features(image, snake, 10, 200)
     
     plt.title('P_in - P_out')
     plt.imshow(P_in - P_out, cmap='RdBu')
