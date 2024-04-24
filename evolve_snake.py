@@ -139,7 +139,7 @@ def evolve_snake(snake, image, B, step_size, M, bins):
     outer = image[False == s_mask]
     
     # Determine probabilities for Curve Evolution
-    P_in, P_out = get_pin_pout_cluster_features(image, snake,M,bins)
+    P_in, P_out = get_pin_pout_cluster_color(image, snake,M,bins)
     
     # Ensure that probabilities sum to one (Astrid modification)
     P_in_norm = P_in/(P_in+P_out)
@@ -162,21 +162,21 @@ def evolve_snake(snake, image, B, step_size, M, bins):
 
 #%%
 # Image to be displayed
-test_image = '108073.jpg'
+test_image = '12003.jpg'
 # Load an image
-image = io.imread('Data/'+test_image).mean(axis=2).astype(np.uint8)
+image = io.imread('Data/'+test_image).astype(np.uint8)
 
 
 # Settings
-N = 90
-center = (180,250)
-radius = 90
-alpha = 0.6
-beta = 0.6
-step_size = 6
-n_evolutions = 50
-M = 25
-bins = 50
+N = 200
+center = (110,250)
+radius = 180
+alpha = 1.8
+beta = 1.2
+step_size = 10
+n_evolutions = 90
+M = 5
+bins = 80
 
 # Create snakes
 snake = create_circle_snake(center[0], center[1], radius, N)
@@ -191,7 +191,7 @@ closed = np.hstack([np.arange(N), 0])  # Indices of the closed curve
 
 for i in range(n_evolutions):
     snake = evolve_snake(snake, image, B, step_size,M,bins)
-    if np.mod(i+1,10)==0:
+    if np.mod(i+1,5)==0:
         plt.title('New snake')
         plt.imshow(image, cmap='gray')
         plt.plot(snake[:,1], snake[:,0], c='red')
@@ -199,11 +199,11 @@ for i in range(n_evolutions):
     
 # %%
 # Divide image into inner and outer region
-s_mask = polygon2mask(image.shape, snake)
+s_mask = polygon2mask(image.shape[0:2], snake)
 inner = image[s_mask]
 outer = image[False == s_mask]
 
-inner_assign, outer_assign = get_image_assign(image, snake, M, bins)
+inner_assign, outer_assign = get_image_assign(image[:,:,0], snake, M, bins)
     
 plt.title('Inner and outer regions')
 plt.hist(inner, density=True, bins=bins, ls='dashed', lw=3, fc=(1, 0, 0, 0.5))

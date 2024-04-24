@@ -183,6 +183,78 @@ def get_gauss_feat_multi(im, sigma = [1, 2, 4], normalize = True):
     return imfeats
 
 
+def get_pin_pout_cluster_color(image, snake, M, bins):
+    in_mask = polygon2mask(image.shape[0:2], snake).ravel().astype(bool)
+    out_mask = 1 - in_mask
+    
+    # The A matrices are the sum of the pixels in the inner and outer regions
+    A_in = np.sum(in_mask)
+    A_out = np.sum(out_mask)
+    
+    # Get the number of pixels in the image
+    num_pixels = image.shape[0] * image.shape[1]
+    
+    # Get the value range (intensities)
+    value_range = np.arange(bins)
+    value_range_matrix = np.tile(value_range, (num_pixels, 1))
+    
+    
+    
+    # Divide image into patches
+    patches = patchify(image[:,:,0], (M,M), M)
+    patch_size = patches.shape
+    patches = patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
+    
+    for layer in range(1,image.shape[2]):
+        col_patches = patchify(image[:,:,layer], (M,M), M)
+        col_patches = col_patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
+        
+        patches=np.concatenate((patches,col_patches),axis=1)
+        
+    
+    # Cluster patches
+    kmeans = sklearn.cluster.MiniBatchKMeans(n_clusters=bins, 
+                                         batch_size=2*bins)
+    kmeans.fit(patches)
+    assignments = kmeans.labels_
+    
+    # Reshape to image
+    dictionary = kmeans.cluster_centers_
+    patch_assignment = assignments.reshape(patch_size[0:2])
+    # plt.imshow(patch_assignment)
+    # plt.show()
+    image_assigment=np.zeros(image.shape[0:2])
+
+    for i in range(int(image.shape[0]/M)):
+        for j in range(int(image.shape[1]/M)):
+            image_assigment[i*M:(i+1)*M,j*M:(j+1)*M]=patch_assignment[i,j]
+    image_assigment=image_assigment.astype(np.uint8)
+
+    # plt.imshow(image_assigment)
+    # plt.show()
+    
+    # Calculate dictionary probabilities
+    
+
+    # order pixels by column
+    image_flat = image_assigment.ravel()
+    image_matrix = np.multiply(image_flat, np.ones((num_pixels, bins), dtype=np.uint8).T).T
+    
+    # Calculate B matrix
+    
+    B = (value_range_matrix == image_matrix).astype(bool)
+    
+
+    f_in = (B.T.astype(np.float64) @ in_mask) / A_in
+    p_in = f_in / f_in.sum()
+    P_in = p_in[image_assigment]
+    
+    f_out = (B.T.astype(np.float64) @ out_mask) / A_out
+    p_out = f_out / f_out.sum()
+    P_out = p_out[image_assigment]
+        
+    return P_in, P_out
+
 #%% Function to display an image
 if __name__ == '__main__':
     # Image to be displayed
@@ -208,7 +280,7 @@ if __name__ == '__main__':
     plt.show()
 
     # Get pin and pout
-    P_in, P_out = get_pin_pout_cluster_features(image, snake, 10, 200)
+    P_in, P_out = get_pin_pout_cluster_color(image, snake, 10, 200)
     
     plt.title('P_in - P_out')
     plt.imshow(P_in - P_out, cmap='RdBu')
