@@ -28,7 +28,7 @@ def get_pin_pout_cluster(image, snake, M, bins):
     num_pixels = image.shape[0] * image.shape[1]
     
     # Get the value range (intensities)
-    value_range = np.arange(256)
+    value_range = np.arange(bins)
     value_range_matrix = np.tile(value_range, (num_pixels, 1))
     
     # Divide image into patches
@@ -50,7 +50,15 @@ def get_pin_pout_cluster(image, snake, M, bins):
     patch_assignment = assignments.reshape(patch_size[0:2])
     # plt.imshow(patch_assignment)
     # plt.show()
-    
+    image_assigment=np.zeros(image.shape)
+
+    for i in range(int(image.shape[0]/M)):
+        for j in range(int(image.shape[1]/M)):
+            image_assigment[i*M:(i+1)*M,j*M:(j+1)*M]=patch_assignment[i,j]
+    image_assigment=image_assigment.astype(np.uint8)
+
+    # plt.imshow(image_assigment)
+    # plt.show()
     # Calculate frequencies of bins
     binFrequency = np.histogram(assignments,bins=bins)
     # plt.hist(binFrequency[0],bins=bins)
@@ -60,20 +68,21 @@ def get_pin_pout_cluster(image, snake, M, bins):
     
 
     # order pixels by column
-    image_flat = image.ravel()
-    image_matrix = b = np.multiply(image_flat, np.ones((num_pixels, 256), dtype=np.uint8).T).T
+    image_flat = image_assigment.ravel()
+    image_matrix = b = np.multiply(image_flat, np.ones((num_pixels, bins), dtype=np.uint8).T).T
     
     # Calculate B matrix
     
     B = (value_range_matrix == image_matrix).astype(bool)
     
+
     f_in = (B.T.astype(np.float64) @ in_mask) / A_in
     p_in = f_in / f_in.sum()
-    P_in = p_in[image]
+    P_in = p_in[image_assigment]
     
     f_out = (B.T.astype(np.float64) @ out_mask) / A_out
     p_out = f_out / f_out.sum()
-    P_out = p_out[image]
+    P_out = p_out[image_assigment]
         
     return P_in, P_out
 
