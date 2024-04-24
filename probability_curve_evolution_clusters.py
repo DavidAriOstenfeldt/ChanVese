@@ -60,7 +60,7 @@ def get_pin_pout_cluster(image, snake, M, bins):
     # plt.imshow(image_assigment)
     # plt.show()
     # Calculate frequencies of bins
-    binFrequency = np.histogram(assignments,bins=bins)
+    #binFrequency = np.histogram(assignments,bins=bins)
     # plt.hist(binFrequency[0],bins=bins)
     # plt.show()
     
@@ -69,7 +69,7 @@ def get_pin_pout_cluster(image, snake, M, bins):
 
     # order pixels by column
     image_flat = image_assigment.ravel()
-    image_matrix = b = np.multiply(image_flat, np.ones((num_pixels, bins), dtype=np.uint8).T).T
+    image_matrix = np.multiply(image_flat, np.ones((num_pixels, bins), dtype=np.uint8).T).T
     
     # Calculate B matrix
     
@@ -86,6 +86,37 @@ def get_pin_pout_cluster(image, snake, M, bins):
         
     return P_in, P_out
 
+
+def get_image_assign(image, snake, M, bins):
+
+    in_mask = polygon2mask(image.shape, snake).ravel().astype(bool)
+
+    # Divide image into patches
+    patches = patchify(image, (M,M), M)
+    patch_size = patches.shape
+    patches = patches.reshape(int(image.shape[0]/M)*int(image.shape[1]/M),M*M)
+    
+    # Cluster patches
+    kmeans = sklearn.cluster.MiniBatchKMeans(n_clusters=bins, 
+                                         batch_size=2*bins)
+    kmeans.fit(patches)
+    assignments = kmeans.labels_
+
+    patch_assignment = assignments.reshape(patch_size[0:2])
+    image_assigment=np.zeros(image.shape)
+
+    for i in range(int(image.shape[0]/M)):
+        for j in range(int(image.shape[1]/M)):
+            image_assigment[i*M:(i+1)*M,j*M:(j+1)*M]=patch_assignment[i,j]
+    image_assigment=image_assigment.astype(np.uint8).ravel()
+
+    print( image_assigment.shape)
+    print( in_mask.shape)
+    inner_assign = image_assigment[in_mask]
+    outer_assign = image_assigment[False == in_mask]
+
+        
+    return inner_assign, outer_assign
 
 #%% Function to display an image
 if __name__ == '__main__':

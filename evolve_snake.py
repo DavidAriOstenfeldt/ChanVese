@@ -130,7 +130,7 @@ def get_pin_pout(image, snake):
 
 #%% Function for evolving the snake
 
-def evolve_snake(snake, image, B, step_size):
+def evolve_snake(snake, image, B, step_size, M, bins):
     """ Single step of snake evolution."""
     # Divide image into inner and outer region
     s_mask = polygon2mask(image.shape, snake)
@@ -138,10 +138,7 @@ def evolve_snake(snake, image, B, step_size):
     outer = image[False == s_mask]
     
     # Determine probabilities for Curve Evolution
-    P_in, P_out = get_pin_pout_cluster(image, snake,10,50)
-    #print(P_in.shape)
-    #P_in, P_out = get_pin_pout(image, snake)
-    #print(P_in.shape)
+    P_in, P_out = get_pin_pout_cluster(image, snake,M,bins)
     
     # Ensure that probabilities sum to one (Astrid modification)
     P_in_norm = P_in/(P_in+P_out)
@@ -162,22 +159,23 @@ def evolve_snake(snake, image, B, step_size):
     return snake, displacement, Fext*10, get_normals(snake)*10
 
 
-    
-
 #%%
 # Image to be displayed
-test_image = 'test_A1.png'
+test_image = '108073.jpg'
 # Load an image
-image = io.imread('Data/'+test_image, as_gray=True).astype(np.uint8)
+image = io.imread('Data/'+test_image).mean(axis=2).astype(np.uint8)
 
 
 # Settings
-N = 300
-center = (100,100)
-radius = 150
-alpha = 4
-beta = 0.2
-step_size = 30
+N = 320
+center = (180,250)
+radius = 90
+alpha = 0.6
+beta = 0.6
+step_size = 2.2
+n_evolutions = 30
+M = 12
+bins = 50
 
 # Create snakes
 snake = create_circle_snake(center[0], center[1], radius, N)
@@ -190,24 +188,30 @@ B = regularization_matrix(N, alpha, beta)
 
 closed = np.hstack([np.arange(N), 0])  # Indices of the closed curve
 
-for i in range(100):
-    snake, displacement, Fext, normals = evolve_snake(snake, image, B, step_size)
+for i in range(n_evolutions):
+    snake, displacement, Fext, normals = evolve_snake(snake, image, B, step_size,M,bins)
 
-    plt.title('New snake')
-    plt.imshow(image, cmap='gray')
-    plt.plot(snake[:,1], snake[:,0], c='red')
-    plt.show()
+plt.title('New snake')
+plt.imshow(image, cmap='gray')
+plt.plot(snake[:,1], snake[:,0], c='red')
+plt.show()
     
-
-
-
+# %%
 # Divide image into inner and outer region
 s_mask = polygon2mask(image.shape, snake)
 inner = image[s_mask]
 outer = image[False == s_mask]
+
+inner_assign, outer_assign = get_image_assign(image, snake, M, bins)
     
 plt.title('Inner and outer regions')
-plt.hist(inner, density=True, bins=255, ls='dashed', lw=3, fc=(1, 0, 0, 0.5))
-plt.hist(outer, density=True, bins=255, ls='dashed', lw=3, fc=(0, 0, 1, 0.5))
+plt.hist(inner, density=True, bins=bins, ls='dashed', lw=3, fc=(1, 0, 0, 0.5))
+plt.hist(outer, density=True, bins=bins, ls='dashed', lw=3, fc=(0, 0, 1, 0.5))
+plt.show()
+
+
+plt.title('Inner and outer regions')
+plt.hist(inner_assign, density=True, bins=bins, ls='dashed', lw=3, fc=(1, 0, 0, 0.5))
+plt.hist(outer_assign, density=True, bins=bins, ls='dashed', lw=3, fc=(0, 0, 1, 0.5))
 plt.show()
 # %%
